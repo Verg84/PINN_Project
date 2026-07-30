@@ -9,8 +9,6 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-import pandas as pd
-
 ###############################################################
 # DEVICE
 ###############################################################
@@ -24,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 data = TempDataModule(
     "data/temp.nc",
     sequence_length=3,
-    downsample_factor=4,
+    downsample_factor=None,
 )
 
 train_set, val_set, test_set = data.split()
@@ -165,7 +163,6 @@ for run in range(runs):
 
     best_val = float("inf")
     
-    results=[]
     ###############################################################
 # TRAINING (100 epochs)
 ###############################################################
@@ -317,7 +314,7 @@ for run in range(runs):
                     "model": model.state_dict(),
                     "kappa": kappa_raw.detach(),
                 },
-                f"saved_models/heat/best_model_run{run}_{lambda_phys}.pt",
+                f"saved_models/example_0/best_model_run{run}_{lambda_phys}.pt",
             )
 
         ###########################################################
@@ -336,7 +333,7 @@ for run in range(runs):
 ###############################################################
 
     ckpt = torch.load(
-        f"saved_models/heat/best_model_run{run}_{lambda_phys}.pt",
+        f"saved_models/example_0/best_model_run{run}_{lambda_phys}.pt",
         map_location=device,
     )
 
@@ -469,16 +466,6 @@ for run in range(runs):
     rmse_all.append(rmse)
     mae_all.append(mae)
     grad_all.append(gradient_error)
-    results.append(
-        {
-            "Run":run+1,
-            "MSE":mse,
-            "RMSE":rmse,
-            "MAE":mae,
-            "Gradient_Error":gradient_error,
-            "Kappa":F.softplus(kappa_raw).item()
-        }
-    )
 
     ###############################################################
     # ERROR MAP
@@ -513,7 +500,7 @@ for run in range(runs):
     plt.ylabel("Latitude")
 
     plt.savefig(
-        f"results/heat/mean_absolute_error_run{run+1}_{lambda_phys}.png",
+        f"results/example_0/mean_absolute_error_run{run+1}_{lambda_phys}.png",
         dpi=300,
         bbox_inches="tight",
     )
@@ -543,43 +530,3 @@ print(
 print(
     f"Gradient Error : {np.mean(grad_all):.6f} ± {np.std(grad_all):.6f}"
 )
-
-###############################################################
-# SAVE RESULTS
-###############################################################
-
-df = pd.DataFrame(results)
-
-mean_row = {
-    "Run": "Mean",
-    "MSE": df["MSE"].mean(),
-    "RMSE": df["RMSE"].mean(),
-    "MAE": df["MAE"].mean(),
-    "Gradient_Error": df["Gradient_Error"].mean(),
-    "Kappa": df["Kappa"].mean(),
-}
-
-std_row = {
-    "Run": "Std",
-    "MSE": df["MSE"].std(ddof=1),
-    "RMSE": df["RMSE"].std(ddof=1),
-    "MAE": df["MAE"].std(ddof=1),
-    "Gradient_Error": df["Gradient_Error"].std(ddof=1),
-    "Kappa": df["Kappa"].std(ddof=1),
-}
-
-df = pd.concat(
-    [
-        df,
-        pd.DataFrame([mean_row]),
-        pd.DataFrame([std_row]),
-    ],
-    ignore_index=True,
-)
-
-df.to_csv(
-    f"results/heat/metrics_summary_{lambda_phys}.csv",
-    index=False,
-)
-
-print(df)

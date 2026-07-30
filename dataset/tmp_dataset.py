@@ -19,16 +19,22 @@ class TempDataset(Dataset):
         1 = held-out pixels (supervise)
     """
 
-    def __init__(self, X, y, mask):
+    def __init__(self, X, y, mask, y_hist):
         self.X = X.float()
         self.y = y.float()
         self.mask = mask.float()
+        self.y_hist = y_hist.float()
 
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
-        return self.X[idx], self.y[idx], self.mask
+        return (
+            self.X[idx],
+            self.y[idx],
+            self.mask,
+            self.y_hist[idx],
+        )
 
 
 ##########################################################################
@@ -135,20 +141,32 @@ class TempDataModule:
 
         X = []
         y = []
+        y_hist = []
 
         seq = self.sequence_length
 
         for i in range(len(t2m) - seq):
 
+            # Input sequence (coarse)
             X.append(coarse[i:i + seq])
 
+            # Target frame
             y.append(t2m[i + seq])
 
-        X = torch.from_numpy(np.asarray(X)).float()
+            # Previous two high-resolution frames
+            y_hist.append(t2m[i + seq - 2:i + seq])
+
+        X = torch.from_numpy(
+            np.asarray(X)
+        ).float()
 
         y = torch.from_numpy(
             np.asarray(y)
         ).unsqueeze(1).float()
+
+        y_hist = torch.from_numpy(
+            np.asarray(y_hist)
+        ).float()
 
         ##############################################################
         # Mask tensor
@@ -156,13 +174,13 @@ class TempDataModule:
 
         mask = torch.from_numpy(mask).unsqueeze(0).float()
 
-        return X, y, mask
+        return X, y, mask, y_hist
 
     ######################################################################
 
     def split(self):
 
-        X, y, mask = self.load()
+        X, y, mask, y_hist = self.load()
 
         N = len(X)
 
@@ -176,21 +194,28 @@ class TempDataModule:
             X[:train_end],
             y[:train_end],
             mask,
+            y_hist[:train_end],
         )
 
         val_dataset = TempDataset(
             X[train_end:val_end],
             y[train_end:val_end],
             mask,
+            y_hist[train_end:val_end],
         )
 
         test_dataset = TempDataset(
             X[val_end:],
             y[val_end:],
             mask,
+            y_hist[val_end:],
         )
 
-        return train_dataset, val_dataset, test_dataset
+        return (
+            train_dataset,
+            val_dataset,
+            test_dataset,
+        )
 
     ######################################################################
 
