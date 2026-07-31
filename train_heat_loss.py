@@ -150,7 +150,7 @@ for run in range(runs):
     # TRAINABLE PHYSICAL PARAMETER
     ###########################################################
 
-    lambda_phys = 0
+    lambda_phys = 1e-4
 
     kappa_raw = torch.nn.Parameter(
         torch.tensor(
