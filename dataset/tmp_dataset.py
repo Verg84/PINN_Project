@@ -19,11 +19,12 @@ class TempDataset(Dataset):
         1 = held-out pixels (supervise)
     """
 
-    def __init__(self, X, y, mask, y_hist):
+    def __init__(self, X, y, mask, y_prev,y_next):
         self.X = X.float()
         self.y = y.float()
         self.mask = mask.float()
-        self.y_hist = y_hist.float()
+        self.y_prev=y_prev.float()
+        self.y_next=y_next.float()
 
     def __len__(self):
         return len(self.X)
@@ -33,7 +34,8 @@ class TempDataset(Dataset):
             self.X[idx],
             self.y[idx],
             self.mask,
-            self.y_hist[idx],
+            self.y_prev[idx],
+            self.y_next[idx]
         )
 
 
@@ -141,12 +143,12 @@ class TempDataModule:
 
         X = []
         y = []
-        y_hist = []
+        y_prev = []
+        y_next=[]
 
         seq = self.sequence_length
 
-        for i in range(len(t2m) - seq):
-
+        for i in range(len(t2m) - seq - 1):
             # Input sequence (coarse)
             X.append(coarse[i:i + seq])
 
@@ -154,7 +156,8 @@ class TempDataModule:
             y.append(t2m[i + seq])
 
             # Previous two high-resolution frames
-            y_hist.append(t2m[i + seq - 2:i + seq])
+            y_prev.append(t2m[i + seq - 1])
+            y_next.append(t2m[i+seq+1])
 
         X = torch.from_numpy(
             np.asarray(X)
@@ -164,9 +167,8 @@ class TempDataModule:
             np.asarray(y)
         ).unsqueeze(1).float()
 
-        y_hist = torch.from_numpy(
-            np.asarray(y_hist)
-        ).float()
+        y_prev=torch.from_numpy(np.asarray(y_prev)).unsqueeze(1).float()
+        y_next=torch.from_numpy(np.asarray(y_next)).unsqueeze(1).float()
 
         ##############################################################
         # Mask tensor
@@ -174,13 +176,13 @@ class TempDataModule:
 
         mask = torch.from_numpy(mask).unsqueeze(0).float()
 
-        return X, y, mask, y_hist
+        return X, y, mask,y_prev,y_next
 
     ######################################################################
 
     def split(self):
 
-        X, y, mask, y_hist = self.load()
+        X, y, mask,y_prev,y_next = self.load()
 
         N = len(X)
 
@@ -194,21 +196,24 @@ class TempDataModule:
             X[:train_end],
             y[:train_end],
             mask,
-            y_hist[:train_end],
+            y_prev[:train_end],
+            y_next[:train_end]
         )
 
         val_dataset = TempDataset(
             X[train_end:val_end],
             y[train_end:val_end],
             mask,
-            y_hist[train_end:val_end],
+            y_prev[train_end:val_end],
+            y_next[train_end:val_end]
         )
 
         test_dataset = TempDataset(
             X[val_end:],
             y[val_end:],
             mask,
-            y_hist[val_end:],
+            y_prev[val_end:],
+            y_next[val_end:]
         )
 
         return (

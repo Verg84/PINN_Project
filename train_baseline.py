@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 ###############################
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+print(device)
 ###############################
 # DATA
 ###############################
@@ -88,7 +88,7 @@ for epoch in range(100):
 
     train_loss = 0.0
 
-    for xb, yb, mask in train_loader:
+    for xb, yb, mask,*_ in train_loader:
 
         xb = xb.to(device)
         yb = yb.to(device)
@@ -122,7 +122,7 @@ for epoch in range(100):
 
     with torch.no_grad():
 
-        for xb, yb, mask in val_loader:
+        for xb, yb, mask,*_ in val_loader:
 
             xb = xb.to(device)
             yb = yb.to(device)
@@ -179,7 +179,7 @@ targets = []
 
 with torch.no_grad():
 
-    for xb, yb, mask in test_loader:
+    for xb, yb, mask,*_ in test_loader:
 
         xb = xb.to(device)
         yb = yb.to(device)

@@ -86,7 +86,7 @@ def laplacian_smoothness(T_seq, dx=1.0, dy=1.0):
 # TRAINING
 ###############################################################
 
-lambda_smooth = 0
+lambda_smooth = 1e-4
 
 best_val = float("inf")
 
@@ -96,7 +96,7 @@ for epoch in range(100):
 
     train_loss = 0.0
 
-    for xb, yb, mask in train_loader:
+    for xb, yb, mask,*_ in train_loader:
 
         xb = xb.to(device)
         yb = yb.to(device)
@@ -142,7 +142,7 @@ for epoch in range(100):
 
     with torch.no_grad():
 
-        for xb, yb, mask in val_loader:
+        for xb, yb, mask,*_ in val_loader:
 
             xb = xb.to(device)
             yb = yb.to(device)
@@ -170,7 +170,7 @@ for epoch in range(100):
 
         torch.save(
             model.state_dict(),
-            "saved_models/smooth/best_model_0.pt",
+            f"saved_models/smooth/best_model_{lambda_smooth}.pt",
         )
 
     print(
@@ -185,7 +185,7 @@ for epoch in range(100):
 
 model.load_state_dict(
     torch.load(
-        "saved_models/smooth/best_model_0.pt",
+        f"saved_models/smooth/best_model_{lambda_smooth}.pt",
         map_location=device,
     )
 )
@@ -203,7 +203,7 @@ test_loss = 0.0
 
 with torch.no_grad():
 
-    for xb, yb, mask in test_loader:
+    for xb, yb, mask,*_ in test_loader:
 
         xb = xb.to(device)
         yb = yb.to(device)
@@ -286,7 +286,7 @@ plt.xlabel("Longitude")
 plt.ylabel("Latitude")
 
 plt.savefig(
-    "results/smooth/mean_absolute_error_0.png",
+    f"results/smooth/mean_absolute_error_{lambda_smooth}.png",
     dpi=300,
     bbox_inches="tight",
 )

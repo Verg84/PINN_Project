@@ -11,12 +11,35 @@ import matplotlib.pyplot as plt
 
 import pandas as pd
 
+import argparse
+
+parser=argparse.ArgumentParser()
+
+parser.add_argument(
+    "--lambda_phys",
+    dest="lambda_phys",
+    type=float,
+    default=0.0,
+    help="Weight for physics loss",
+)
+
+parser.add_argument(
+    "--downsample_factor",
+    type=int,
+    default=4,
+    help="Spatial dqownsampling factor for the dataset",
+)
+
+args=parser.parse_args()
+
+lambda_phys=args.lambda_phys
+downsample_factor=args.downsample_factor
 ###############################################################
 # DEVICE
 ###############################################################
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+print(device)
 ###############################################################
 # DATA
 ###############################################################
@@ -24,9 +47,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 data = TempDataModule(
     "data/temp.nc",
     sequence_length=3,
-    downsample_factor=4,
+    downsample_factor=downsample_factor,
 )
-
 train_set, val_set, test_set = data.split()
 
 train_loader = DataLoader(
@@ -127,7 +149,7 @@ def heat_residual(
 ###############################################################
 # START OF EACH RUN
 ###############################################################
-
+results=[]
 for run in range(runs):
 
     print(f"\n========== Run {run+1}/{runs} ==========\n")
@@ -150,7 +172,7 @@ for run in range(runs):
     # TRAINABLE PHYSICAL PARAMETER
     ###########################################################
 
-    lambda_phys = 1e-4
+    
 
     kappa_raw = torch.nn.Parameter(
         torch.tensor(
@@ -165,7 +187,7 @@ for run in range(runs):
 
     best_val = float("inf")
     
-    results=[]
+    
     ###############################################################
 # TRAINING (100 epochs)
 ###############################################################
@@ -180,12 +202,13 @@ for run in range(runs):
 
         train_loss = 0.0
 
-        for xb, yb, mask, hist in train_loader:
+        for xb, yb, mask,prev,nxt in train_loader:
 
             xb = xb.to(device)
             yb = yb.to(device)
             mask = mask.to(device)
-            hist = hist.to(device)
+            prev=prev.to(device)
+            nxt=nxt.to(device)
 
             #######################################################
             # FORWARD
@@ -208,14 +231,8 @@ for run in range(runs):
             #######################################################
 
             # High-resolution sequence:
-            # [T(t-2), T(t-1), T̂(t)]
-            sequence = torch.cat(
-                [
-                    hist,
-                    pred,
-                ],
-                dim=1,
-            )
+            # [T(t-1), T(t), T̂(t+1)]
+            sequence=torch.cat([prev,pred,nxt],dim=1)
 
             kappa = F.softplus(kappa_raw)
 
@@ -253,12 +270,13 @@ for run in range(runs):
 
         with torch.no_grad():
 
-            for xb, yb, mask, hist in val_loader:
+            for xb, yb, mask,prev,nxt in val_loader:
 
                 xb = xb.to(device)
                 yb = yb.to(device)
                 mask = mask.to(device)
-                hist = hist.to(device)
+                prev=prev.to(device)
+                nxt=nxt.to(device)
 
                 pred = model(xb)
 
@@ -276,13 +294,7 @@ for run in range(runs):
                 # PHYSICS LOSS
                 ###################################################
 
-                sequence = torch.cat(
-                    [
-                        hist,
-                        pred,
-                    ],
-                    dim=1,
-                )
+                sequence=torch.cat([prev,pred,nxt],dim=1)
 
                 kappa = F.softplus(kappa_raw)
 
@@ -317,7 +329,7 @@ for run in range(runs):
                     "model": model.state_dict(),
                     "kappa": kappa_raw.detach(),
                 },
-                f"saved_models/heat/best_model_run{run}_{lambda_phys}.pt",
+                f"saved_models/heat/best_model_run{run}_{lambda_phys}_{downsample_factor}.pt",
             )
 
         ###########################################################
@@ -336,7 +348,7 @@ for run in range(runs):
 ###############################################################
 
     ckpt = torch.load(
-        f"saved_models/heat/best_model_run{run}_{lambda_phys}.pt",
+                f"saved_models/heat/best_model_run{run}_{lambda_phys}_{downsample_factor}.pt",
         map_location=device,
     )
 
@@ -361,12 +373,12 @@ for run in range(runs):
 
     with torch.no_grad():
 
-        for xb, yb, mask, hist in test_loader:
+        for xb, yb, mask, prev,nxt in test_loader:
 
             xb = xb.to(device)
             yb = yb.to(device)
             mask = mask.to(device)
-            hist = hist.to(device)
+            
 
             pred = model(xb)
 
@@ -513,7 +525,7 @@ for run in range(runs):
     plt.ylabel("Latitude")
 
     plt.savefig(
-        f"results/heat/mean_absolute_error_run{run+1}_{lambda_phys}.png",
+        f"results/heat/mean_absolute_error_run{run+1}_{lambda_phys}_{downsample_factor}.png",
         dpi=300,
         bbox_inches="tight",
     )
@@ -578,7 +590,7 @@ df = pd.concat(
 )
 
 df.to_csv(
-    f"results/heat/metrics_summary_{lambda_phys}.csv",
+    f"results/heat/metrics_summary_{lambda_phys}_{downsample_factor}.csv",
     index=False,
 )
 

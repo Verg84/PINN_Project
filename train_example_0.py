@@ -177,12 +177,13 @@ for run in range(runs):
 
         train_loss = 0.0
 
-        for xb, yb, mask, hist in train_loader:
+        for xb, yb, mask,prev,nxt in train_loader:
 
             xb = xb.to(device)
             yb = yb.to(device)
             mask = mask.to(device)
-            hist = hist.to(device)
+            prev=prev.to(device)
+            nxt=nxt.to(device)
 
             #######################################################
             # FORWARD
@@ -205,14 +206,8 @@ for run in range(runs):
             #######################################################
 
             # High-resolution sequence:
-            # [T(t-2), T(t-1), T̂(t)]
-            sequence = torch.cat(
-                [
-                    hist,
-                    pred,
-                ],
-                dim=1,
-            )
+            # # [T(t-1), T(t), T̂(t+1)]
+            sequence = torch.cat([prev,pred,nxt],dim=1)
 
             kappa = F.softplus(kappa_raw)
 
@@ -250,12 +245,13 @@ for run in range(runs):
 
         with torch.no_grad():
 
-            for xb, yb, mask, hist in val_loader:
+            for xb, yb, mask,prev,nxt in val_loader:
 
                 xb = xb.to(device)
                 yb = yb.to(device)
                 mask = mask.to(device)
-                hist = hist.to(device)
+                prev=prev.to(device)
+                nxt=nxt.to(device)
 
                 pred = model(xb)
 
@@ -273,13 +269,7 @@ for run in range(runs):
                 # PHYSICS LOSS
                 ###################################################
 
-                sequence = torch.cat(
-                    [
-                        hist,
-                        pred,
-                    ],
-                    dim=1,
-                )
+                sequence = torch.cat([prev,pred,nxt],dim=1)
 
                 kappa = F.softplus(kappa_raw)
 
@@ -358,12 +348,11 @@ for run in range(runs):
 
     with torch.no_grad():
 
-        for xb, yb, mask, hist in test_loader:
+        for xb, yb, mask,prev,nxt in test_loader:
 
             xb = xb.to(device)
             yb = yb.to(device)
             mask = mask.to(device)
-            hist = hist.to(device)
 
             pred = model(xb)
 
