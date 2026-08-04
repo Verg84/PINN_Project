@@ -27,7 +27,7 @@ parser.add_argument(
     "--downsample_factor",
     type=int,
     default=4,
-    help="Spatial dqownsampling factor for the dataset",
+    help="Spatial downsampling factor for the dataset",
 )
 
 args=parser.parse_args()
