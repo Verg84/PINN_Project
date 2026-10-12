@@ -20,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ###############################################################
 
 data = TempDataModule(
-    "data/temp.nc",
+    "data/temp_hourly.nc",
     sequence_length=3,
     downsample_factor=None,
 )

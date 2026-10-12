@@ -45,7 +45,7 @@ print(device)
 ###############################################################
 
 data = TempDataModule(
-    "data/temp.nc",
+    "data/temp_hourly.nc",
     sequence_length=3,
     downsample_factor=downsample_factor,
 )
@@ -329,7 +329,7 @@ for run in range(runs):
                     "model": model.state_dict(),
                     "kappa": kappa_raw.detach(),
                 },
-                f"saved_models/heat/best_model_run{run}_{lambda_phys}_{downsample_factor}.pt",
+                f"saved_models/heat/hourly_data/best_model_run{run}_{lambda_phys}_{downsample_factor}.pt",
             )
 
         ###########################################################
@@ -348,7 +348,7 @@ for run in range(runs):
 ###############################################################
 
     ckpt = torch.load(
-                f"saved_models/heat/best_model_run{run}_{lambda_phys}_{downsample_factor}.pt",
+                f"saved_models/heat/hourly_data/best_model_run{run}_{lambda_phys}_{downsample_factor}.pt",
         map_location=device,
     )
 
@@ -525,7 +525,7 @@ for run in range(runs):
     plt.ylabel("Latitude")
 
     plt.savefig(
-        f"results/heat/mean_absolute_error_run{run+1}_{lambda_phys}_{downsample_factor}.png",
+        f"results/heat/hourly_data/mean_absolute_error_run{run+1}_{lambda_phys}_{downsample_factor}.png",
         dpi=300,
         bbox_inches="tight",
     )
@@ -590,7 +590,7 @@ df = pd.concat(
 )
 
 df.to_csv(
-    f"results/heat/metrics_summary_{lambda_phys}_{downsample_factor}.csv",
+    f"results/heat/hourly_data/metrics_summary_{lambda_phys}_{downsample_factor}.csv",
     index=False,
 )
 
