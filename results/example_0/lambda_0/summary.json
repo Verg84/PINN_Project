@@ -1,0 +1,16 @@
+{
+    "lambda_phys": 0.0,
+    "runs": 3,
+    "mse_mean": 0.6796057224273682,
+    "mse_std": 0.08180242776870728,
+    "rmse_mean": 0.8229305148124695,
+    "rmse_std": 0.04889856278896332,
+    "mae_mean": 0.5961481928825378,
+    "mae_std": 0.02492217905819416,
+    "gradient_error_mean": 0.27623167634010315,
+    "gradient_error_std": 0.04374988004565239,
+    "test_masked_mse_mean": 0.01382760719085733,
+    "test_masked_mse_std": 0.0016149260952477954,
+    "kappa_mean": 0.7443966865539551,
+    "kappa_std": 0.0
+}
